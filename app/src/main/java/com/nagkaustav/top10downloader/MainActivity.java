@@ -4,6 +4,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.widget.ListView;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,14 +17,23 @@ import java.net.URL;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
+    private ListView listApps;
+
+    private static final String TOP_10_FREE_APP = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topfreeapplications/limit=10/xml";
+    private static final String TOP_25_FREE_APP = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topfreeapplications/limit=25/xml";
+
+    private static final String TOP_10_SONGS = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topsongs/limit=10/xml";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        listApps = (ListView) findViewById(R.id.xmlListView);
         Log.d(TAG, "onCreate: AsyncTask begins");
         DownloadData downloadData = new DownloadData();
-        downloadData.execute("http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topsongs/limit=10/xml");
+
+
+        downloadData.execute(TOP_10_FREE_APP);
         Log.d(TAG, "onCreate: AsyncTask Ends");
     }
 
@@ -41,6 +51,17 @@ public class MainActivity extends AppCompatActivity {
             //executed after doInBackground is completed
             super.onPostExecute(s);
             Log.d(TAG, "onPostExecute: parameter is " + s);
+            ParseApplications parseApplications = new ParseApplications();
+            parseApplications.parse(s);
+
+//            ArrayAdapter<FeedEntry> arrayAdapter = new ArrayAdapter<FeedEntry>(
+//                    MainActivity.this, R.layout.list_item, parseApplications.getApplications()
+//            );
+
+            FeedAdapter feedAdapter = new FeedAdapter(
+                    MainActivity.this, R.layout.list_record, parseApplications.getApplications()
+            );
+            listApps.setAdapter(feedAdapter);
         }
 
         @Override
