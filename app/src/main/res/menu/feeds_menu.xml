@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <item
         android:id="@+id/menuFree"
@@ -11,14 +12,18 @@
     <item
         android:id="@+id/menuSongs"
         android:title="Songs" />
+    <item
+        android:id="@+id/menuRefresh"
+        android:title="Refresh" />
     <group
         android:id="@+id/menugrpLimit"
         android:checkableBehavior="single">
         <item
             android:id="@+id/menu10"
+            android:checked="true"
             android:title="Top 10" />
         <item
             android:id="@+id/menu25"
-            android:title="top 25" />
+            android:title="Top 25" />
     </group>
 </menu>

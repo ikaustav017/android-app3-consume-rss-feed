@@ -22,16 +22,37 @@ public class MainActivity extends AppCompatActivity {
     private ListView listApps;
 
     private int feedLimit = 10;
-    private  String TOP_10_FREE_APP = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topfreeapplications/limit=%d/xml";
-    private  String TOP_25_PAID_APP = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/toppaidapplications/limit=%d/xml";
-    private  String TOP_10_SONGS = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topsongs/limit=%d/xml";
+    private String TOP_10_FREE_APP = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topfreeapplications/limit=%d/xml";
+    private String TOP_25_PAID_APP = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/toppaidapplications/limit=%d/xml";
+    private String TOP_10_SONGS = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topsongs/limit=%d/xml";
+
+    String feedURL = TOP_10_FREE_APP;
+
+    //to prevent making the same request again
+    private String feedCachedURL = "INVALIDATED";
+    public static final String STATE_URL = "feedURL";
+    public static final String STATE_LIMIT = "feedLimit";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         listApps = (ListView) findViewById(R.id.xmlListView);
-        downloadURL(String.format(TOP_10_FREE_APP, feedLimit));
+
+        if (savedInstanceState != null) {
+            //activity is restarted (maybe bcause of device rotation
+            feedURL = savedInstanceState.getString(STATE_URL);
+            feedLimit = savedInstanceState.getInt(STATE_LIMIT);
+
+        }
+        downloadURL(String.format(feedURL, feedLimit));
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putString(STATE_URL, feedURL);
+        outState.putInt(STATE_LIMIT, feedLimit);
+        super.onSaveInstanceState(outState);
     }
 
 
@@ -41,9 +62,9 @@ public class MainActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.feeds_menu, menu);
 
         //set the correct menu limit once you have restored the feedlimit value (orientation change)
-        if(feedLimit == 10){
+        if (feedLimit == 10) {
             menu.findItem(R.id.menu10).setChecked(true);
-        }else{
+        } else {
             menu.findItem(R.id.menu25).setChecked(false);
         }
         return true;
@@ -52,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        String feedURL=TOP_10_FREE_APP;
+
 
         switch (id) {
             case R.id.menuFree:
@@ -67,13 +88,17 @@ public class MainActivity extends AppCompatActivity {
             case R.id.menu10:
             case R.id.menu25:
                 if (!(item.isChecked())) {
-                    item.setCheckable(true);
+                    item.setChecked(true);
                     feedLimit = 35 - feedLimit;
                     Log.d(TAG, "onOptionsItemSelected: " + item.getTitle() + " setting feedlist to " + feedLimit);
                 } else {
                     Log.d(TAG, "onOptionsItemSelected: " + item.getTitle() + "feedLimit unchanged");
                 }
                 break;
+            case R.id.menuRefresh:
+                feedCachedURL = "INVALIDATED";
+                break;
+
             default:
                 //calls this when submenus are involved
                 return super.onOptionsItemSelected(item);
@@ -83,10 +108,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void downloadURL(String feedURL) {
-        Log.d(TAG, "downloadURL: AsyncTask begins");
-        DownloadData downloadData = new DownloadData();
-        downloadData.execute(feedURL);
-        Log.d(TAG, "downloadURL: AsyncTask Ends");
+        if (!feedURL.equalsIgnoreCase(feedCachedURL)) {
+            Log.d(TAG, "downloadURL: AsyncTask begins");
+            DownloadData downloadData = new DownloadData();
+            downloadData.execute(feedURL);
+            feedCachedURL = feedURL;
+            Log.d(TAG, "downloadURL: AsyncTask Ends");
+        } else {
+            Log.d(TAG, "downloadURL: URL not changed (data already in cache");
+        }
+
     }
 
     //inner Class since this class will only be used by MainActivity class
@@ -107,10 +138,10 @@ public class MainActivity extends AppCompatActivity {
             parseApplications.parse(s);
 
 //            ArrayAdapter<FeedEntry> arrayAdapter = new ArrayAdapter<FeedEntry>(
-//                    MainActivity.this, R.layout.list_item, parseApplications.getApplications()
+//            MainActivity.this, R.layout.list_item, parseApplications.getApplications()
 //            );
 
-            FeedAdapter feedAdapter = new FeedAdapter(
+            FeedAdapter<FeedEntry> feedAdapter = new FeedAdapter<>(
                     MainActivity.this, R.layout.list_record, parseApplications.getApplications()
             );
             listApps.setAdapter(feedAdapter);
