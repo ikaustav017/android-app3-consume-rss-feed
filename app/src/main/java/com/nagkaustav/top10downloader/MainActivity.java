@@ -4,6 +4,8 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.ListView;
 
 import java.io.BufferedReader;
@@ -19,22 +21,72 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private ListView listApps;
 
-    private static final String TOP_10_FREE_APP = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topfreeapplications/limit=10/xml";
-    private static final String TOP_25_FREE_APP = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topfreeapplications/limit=25/xml";
-
-    private static final String TOP_10_SONGS = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topsongs/limit=10/xml";
+    private int feedLimit = 10;
+    private  String TOP_10_FREE_APP = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topfreeapplications/limit=%d/xml";
+    private  String TOP_25_PAID_APP = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/toppaidapplications/limit=%d/xml";
+    private  String TOP_10_SONGS = "http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/ws/RSS/topsongs/limit=%d/xml";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         listApps = (ListView) findViewById(R.id.xmlListView);
-        Log.d(TAG, "onCreate: AsyncTask begins");
+        downloadURL(String.format(TOP_10_FREE_APP, feedLimit));
+    }
+
+
+    //time to inflate activity menu. (Create menu object from xml file)
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.feeds_menu, menu);
+
+        //set the correct menu limit once you have restored the feedlimit value (orientation change)
+        if(feedLimit == 10){
+            menu.findItem(R.id.menu10).setChecked(true);
+        }else{
+            menu.findItem(R.id.menu25).setChecked(false);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        String feedURL=TOP_10_FREE_APP;
+
+        switch (id) {
+            case R.id.menuFree:
+                feedURL = TOP_10_FREE_APP;
+                break;
+            case R.id.menuPaid:
+                feedURL = TOP_25_PAID_APP;
+                break;
+            case R.id.menuSongs:
+                feedURL = TOP_10_SONGS;
+                break;
+            case R.id.menu10:
+            case R.id.menu25:
+                if (!(item.isChecked())) {
+                    item.setCheckable(true);
+                    feedLimit = 35 - feedLimit;
+                    Log.d(TAG, "onOptionsItemSelected: " + item.getTitle() + " setting feedlist to " + feedLimit);
+                } else {
+                    Log.d(TAG, "onOptionsItemSelected: " + item.getTitle() + "feedLimit unchanged");
+                }
+                break;
+            default:
+                //calls this when submenus are involved
+                return super.onOptionsItemSelected(item);
+        }
+        downloadURL(String.format(feedURL, feedLimit));
+        return true;
+    }
+
+    private void downloadURL(String feedURL) {
+        Log.d(TAG, "downloadURL: AsyncTask begins");
         DownloadData downloadData = new DownloadData();
-
-
-        downloadData.execute(TOP_10_FREE_APP);
-        Log.d(TAG, "onCreate: AsyncTask Ends");
+        downloadData.execute(feedURL);
+        Log.d(TAG, "downloadURL: AsyncTask Ends");
     }
 
     //inner Class since this class will only be used by MainActivity class
@@ -50,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(String s) {
             //executed after doInBackground is completed
             super.onPostExecute(s);
-            Log.d(TAG, "onPostExecute: parameter is " + s);
+            //   Log.d(TAG, "onPostExecute: parameter is " + s);
             ParseApplications parseApplications = new ParseApplications();
             parseApplications.parse(s);
 
